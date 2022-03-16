@@ -832,7 +832,7 @@ uint8_t MPU6050_dmpGetRelativeQuaternion(Quaternion *data, const uint8_t* packet
 uint8_t MPU6050_dmpGetGyro(int32_t *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetGyro(int16_t *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetGyro(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetSetLinearAccelFilterCoefficient(float coef);
+uint8_t MPU6050_dmpSetLinearAccelFilterCoefficient(float coef);
 uint8_t MPU6050_dmpGetLinearAccel(int32_t *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetLinearAccel(int16_t *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetLinearAccel(VectorInt16 *v, const uint8_t* packet=0);
@@ -869,15 +869,15 @@ uint8_t MPU6050_dmpGetYawPitchRoll(float *data, Quaternion *q, VectorFloat *grav
 uint8_t MPU6050_dmpGetAccelFloat(float *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetQuaternionFloat(float *data, const uint8_t* packet=0);
 
-uint8_t MPU6050_dmpGetProcessFIFOPacket(const unsigned char *dmpData);
-uint8_t MPU6050_dmpGetReadAndProcessFIFOPacket(uint8_t numPackets, uint8_t *processed=NULL);
+uint8_t MPU6050_dmpProcessFIFOPacket(const unsigned char *dmpData);
+uint8_t MPU6050_dmpReadAndProcessFIFOPacket(uint8_t numPackets, uint8_t *processed=NULL);
 
-uint8_t MPU6050_dmpGetSetFIFOProcessedCallback(void (*func) (void));
+uint8_t MPU6050_dmpSetFIFOProcessedCallback(void (*func) (void));
 
-uint8_t MPU6050_dmpGetInitFIFOParam();
-uint8_t MPU6050_dmpGetCloseFIFO();
-uint8_t MPU6050_dmpGetSetGyroDataSource(uint8_t source);
-uint8_t MPU6050_dmpGetDecodeQuantizedAccel();
+uint8_t MPU6050_dmpInitFIFOParam();
+uint8_t MPU6050_dmpCloseFIFO();
+uint8_t MPU6050_dmpSetGyroDataSource(uint8_t source);
+uint8_t MPU6050_dmpDecodeQuantizedAccel();
 uint32_t dmpGetGyroSumOfSquare();
 uint32_t dmpGetAccelSumOfSquare();
 void dmpOverrideQuaternion(long *q);
@@ -934,7 +934,7 @@ uint8_t MPU6050_dmpGetGyro(int32_t *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetGyro(int16_t *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetGyro(VectorInt16 *v, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetMag(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetSetLinearAccelFilterCoefficient(float coef);
+uint8_t MPU6050_dmpSetLinearAccelFilterCoefficient(float coef);
 uint8_t MPU6050_dmpGetLinearAccel(int32_t *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetLinearAccel(int16_t *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetLinearAccel(VectorInt16 *v, const uint8_t* packet=0);
@@ -971,15 +971,15 @@ uint8_t MPU6050_dmpGetYawPitchRoll(float *data, Quaternion *q, VectorFloat *grav
 uint8_t MPU6050_dmpGetAccelFloat(float *data, const uint8_t* packet=0);
 uint8_t MPU6050_dmpGetQuaternionFloat(float *data, const uint8_t* packet=0);
 
-uint8_t MPU6050_dmpGetProcessFIFOPacket(const unsigned char *dmpData);
-uint8_t MPU6050_dmpGetReadAndProcessFIFOPacket(uint8_t numPackets, uint8_t *processed=NULL);
+uint8_t MPU6050_dmpProcessFIFOPacket(const unsigned char *dmpData);
+uint8_t MPU6050_dmpReadAndProcessFIFOPacket(uint8_t numPackets, uint8_t *processed=NULL);
 
-uint8_t MPU6050_dmpGetSetFIFOProcessedCallback(void (*func) (void));
+uint8_t MPU6050_dmpSetFIFOProcessedCallback(void (*func) (void));
 
-uint8_t MPU6050_dmpGetInitFIFOParam();
-uint8_t MPU6050_dmpGetCloseFIFO();
-uint8_t MPU6050_dmpGetSetGyroDataSource(uint8_t source);
-uint8_t MPU6050_dmpGetDecodeQuantizedAccel();
+uint8_t MPU6050_dmpInitFIFOParam();
+uint8_t MPU6050_dmpCloseFIFO();
+uint8_t MPU6050_dmpSetGyroDataSource(uint8_t source);
+uint8_t MPU6050_dmpDecodeQuantizedAccel();
 uint32_t MPU6050_dmpGetGyroSumOfSquare();
 uint32_t MPU6050_dmpGetAccelSumOfSquare();
 void MPU6050_dmpOverrideQuaternion(long *q);
