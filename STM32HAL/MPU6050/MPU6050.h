@@ -39,7 +39,7 @@ THE SOFTWARE.
 #define _MPU6050_H_
 
 #include "I2Cdev.h"
-
+#include "math_structs.h"
 // supporting link:  http://forum.arduino.cc/index.php?&topic=143444.msg1079517#msg1079517
 // also: http://forum.arduino.cc/index.php?&topic=141571.msg1062899#msg1062899s
 #ifndef __arm__
@@ -69,6 +69,10 @@ THE SOFTWARE.
 #define MPU6050_RA_YA_OFFS_L_TC     0x09
 #define MPU6050_RA_ZA_OFFS_H        0x0A //[15:0] ZA_OFFS
 #define MPU6050_RA_ZA_OFFS_L_TC     0x0B
+#define MPU6050_RA_SELF_TEST_X      0x0D //[7:5] XA_TEST[4-2], [4:0] XG_TEST[4-0]
+#define MPU6050_RA_SELF_TEST_Y      0x0E //[7:5] YA_TEST[4-2], [4:0] YG_TEST[4-0]
+#define MPU6050_RA_SELF_TEST_Z      0x0F //[7:5] ZA_TEST[4-2], [4:0] ZG_TEST[4-0]
+#define MPU6050_RA_SELF_TEST_A      0x10 //[5:4] XA_TEST[1-0], [3:2] YA_TEST[1-0], [1:0] ZA_TEST[1-0]
 #define MPU6050_RA_XG_OFFS_USRH     0x13 //[15:0] XG_OFFS_USR
 #define MPU6050_RA_XG_OFFS_USRL     0x14
 #define MPU6050_RA_YG_OFFS_USRH     0x15 //[15:0] YG_OFFS_USR
@@ -167,6 +171,26 @@ THE SOFTWARE.
 #define MPU6050_RA_FIFO_COUNTL      0x73
 #define MPU6050_RA_FIFO_R_W         0x74
 #define MPU6050_RA_WHO_AM_I         0x75
+
+#define MPU6050_SELF_TEST_XA_1_BIT     0x07
+#define MPU6050_SELF_TEST_XA_1_LENGTH  0x03
+#define MPU6050_SELF_TEST_XA_2_BIT     0x05
+#define MPU6050_SELF_TEST_XA_2_LENGTH  0x02
+#define MPU6050_SELF_TEST_YA_1_BIT     0x07
+#define MPU6050_SELF_TEST_YA_1_LENGTH  0x03
+#define MPU6050_SELF_TEST_YA_2_BIT     0x03
+#define MPU6050_SELF_TEST_YA_2_LENGTH  0x02
+#define MPU6050_SELF_TEST_ZA_1_BIT     0x07
+#define MPU6050_SELF_TEST_ZA_1_LENGTH  0x03
+#define MPU6050_SELF_TEST_ZA_2_BIT     0x01
+#define MPU6050_SELF_TEST_ZA_2_LENGTH  0x02
+
+#define MPU6050_SELF_TEST_XG_1_BIT     0x04
+#define MPU6050_SELF_TEST_XG_1_LENGTH  0x05
+#define MPU6050_SELF_TEST_YG_1_BIT     0x04
+#define MPU6050_SELF_TEST_YG_1_LENGTH  0x05
+#define MPU6050_SELF_TEST_ZG_1_BIT     0x04
+#define MPU6050_SELF_TEST_ZG_1_LENGTH  0x05
 
 #define MPU6050_TC_PWR_MODE_BIT     7
 #define MPU6050_TC_OFFSET_BIT       6
@@ -407,6 +431,16 @@ THE SOFTWARE.
 #define MPU6050_DMP_MEMORY_BANK_SIZE    256
 #define MPU6050_DMP_MEMORY_CHUNK_SIZE   16
 
+
+typedef struct {
+    uint8_t devAddr;
+    uint8_t buffer[14];
+    uint8_t *dmpPacketBuffer;
+    uint16_t dmpPacketSize;
+}MPU6050_handle_t;
+
+extern MPU6050_handle_t MPU_Handle[2];
+extern uint8_t instance;
 // note: DMP code memory blocks defined at end of header file
 void MPU6050_setAddress(uint8_t address);
 void MPU6050_initialize();
@@ -429,6 +463,15 @@ void MPU6050_setDLPFMode(uint8_t bandwidth);
 // GYRO_CONFIG register
 uint8_t MPU6050_getFullScaleGyroRange();
 void MPU6050_setFullScaleGyroRange(uint8_t range);
+
+
+uint8_t MPU6050_getAccelXSelfTestFactoryTrim();
+uint8_t MPU6050_getAccelYSelfTestFactoryTrim();
+uint8_t MPU6050_getAccelZSelfTestFactoryTrim();
+
+uint8_t MPU6050_getGyroXSelfTestFactoryTrim();
+uint8_t MPU6050_getGyroYSelfTestFactoryTrim();
+uint8_t MPU6050_getGyroZSelfTestFactoryTrim();
 
 // ACCEL_CONFIG register
 bool MPU6050_getAccelXSelfTest();
@@ -677,8 +720,11 @@ uint16_t MPU6050_getFIFOCount();
 
 // FIFO_R_W register
 uint8_t MPU6050_getFIFOByte();
+int8_t MPU6050_GetCurrentFIFOPacket(uint8_t *data, uint8_t length);
 void MPU6050_setFIFOByte(uint8_t data);
 void MPU6050_getFIFOBytes(uint8_t *data, uint8_t length);
+void MPU6050_setFIFOTimeout(uint32_t fifoTimeout);
+uint32_t MPU6050_getFIFOTimeout();
 
 // WHO_AM_I register
 uint8_t MPU6050_getDeviceID();
@@ -783,10 +829,16 @@ void MPU6050_setDMPConfig1(uint8_t config);
 uint8_t MPU6050_getDMPConfig2();
 void MPU6050_setDMPConfig2(uint8_t config);
 
+
+// Calibration Routines
+void MPU6050_CalibrateGyro(uint8_t Loops); // Fine tune after setting offsets with less Loops.
+void MPU6050_CalibrateAccel(uint8_t Loops);// Fine tune after setting offsets with less Loops.
+void MPU6050_PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops);  // Does the math
+void MPU6050_PrintActiveOffsets(); // See the results of the Calibration
+
 // special methods for MotionApps 2.0 implementation
-#ifdef MPU6050_INCLUDE_DMP_MOTIONAPPS20
-uint8_t *MPU6050_dmpPacketBuffer;
-uint16_t MPU6050_dmpPacketSize;
+
+
 
 uint8_t MPU6050_dmpInitialize();
 bool MPU6050_dmpPacketAvailable();
@@ -817,62 +869,60 @@ uint8_t MPU6050_dmpSendQuantizedAccel(uint_fast16_t elements, uint_fast16_t accu
 uint8_t MPU6050_dmpSendEIS(uint_fast16_t elements, uint_fast16_t accuracy);
 
 // Get Fixed Point data from FIFO
-uint8_t MPU6050_dmpGetAccel(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetAccel(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetAccel(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuaternion(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuaternion(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuaternion(Quaternion *q, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGet6AxisQuaternion(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGet6AxisQuaternion(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGet6AxisQuaternion(Quaternion *q, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetRelativeQuaternion(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetRelativeQuaternion(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetRelativeQuaternion(Quaternion *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyro(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyro(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyro(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpSetLinearAccelFilterCoefficient(float coef);
-uint8_t MPU6050_dmpGetLinearAccel(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccel(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccel(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccel(VectorInt16 *v, VectorInt16 *vRaw, VectorFloat *gravity);
-uint8_t MPU6050_dmpGetLinearAccelInWorld(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccelInWorld(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccelInWorld(VectorInt16 *v, const uint8_t* packet=0);
+uint8_t MPU6050_dmpGetAccel_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetAccel_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetAccel_2(VectorInt16 *v, const uint8_t* packet);
+uint8_t MPU6050_dmpGetQuaternion_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetQuaternion_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetQuaternion_2(Quaternion *q, const uint8_t* packet);
+// uint8_t MPU6050_dmpGet6AxisQuaternion_0(int32_t *data, const uint8_t* packet);
+// uint8_t MPU6050_dmpGet6AxisQuaternion_1(int16_t *data, const uint8_t* packet);
+// uint8_t MPU6050_dmpGet6AxisQuaternion_2(Quaternion *q, const uint8_t* packet);
+// uint8_t MPU6050_dmpGetRelativeQuaternion_0(int32_t *data, const uint8_t* packet);
+// uint8_t MPU6050_dmpGetRelativeQuaternion_1(int16_t *data, const uint8_t* packet);
+// uint8_t MPU6050_dmpGetRelativeQuaternion_2(Quaternion *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGyro_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGyro_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGyro_2(VectorInt16 *v, const uint8_t* packet);
+uint8_t MPU6050_dmpSetLinearAccelFilterCoefficient_0(float co);
+uint8_t MPU6050_dmpGetLinearAccel_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetLinearAccel_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetLinearAccel_2(VectorInt16 *v, const uint8_t* packet);
+uint8_t MPU6050_dmpGetLinearAccel_3(VectorInt16 *v, VectorInt16 *vRaw, VectorFloat *gravi);
+uint8_t MPU6050_dmpGetLinearAccelInWorld_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetLinearAccelInWorld_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetLinearAccelInWorld_2(VectorInt16 *v, const uint8_t* packet);
 uint8_t MPU6050_dmpGetLinearAccelInWorld(VectorInt16 *v, VectorInt16 *vReal, Quaternion *q);
-uint8_t MPU6050_dmpGetGyroAndAccelSensor(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroAndAccelSensor(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroAndAccelSensor(VectorInt16 *g, VectorInt16 *a, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroSensor(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroSensor(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroSensor(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetControlData(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetTemperature(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGravity(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGravity(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGravity(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGravity(VectorFloat *v, Quaternion *q);
-uint8_t MPU6050_dmpGetUnquantizedAccel(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetUnquantizedAccel(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetUnquantizedAccel(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuantizedAccel(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuantizedAccel(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuantizedAccel(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetExternalSensorData(int32_t *data, uint16_t size, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetEIS(int32_t *data, const uint8_t* packet=0);
+uint8_t MPU6050_dmpGetGyroAndAccelSensor_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGyroAndAccelSensor_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGyroAndAccelSensor_2(VectorInt16 *g, VectorInt16 *a, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGyroSensor_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGyroSensor_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGyroSensor_2(VectorInt16 *v, const uint8_t* packet);
+uint8_t MPU6050_dmpGetControlData(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetTemperature(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGravity_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGravity_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGravity_2(VectorInt16 *v, const uint8_t* packet);
+uint8_t MPU6050_dmpGetGravity_3(VectorFloat *v, Quaternion *q);
+uint8_t MPU6050_dmpGetUnquantizedAccel_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetUnquantizedAccel_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetUnquantizedAccel_2(VectorInt16 *v, const uint8_t* packet);
+uint8_t MPU6050_dmpGetQuantizedAccel_0(int32_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetQuantizedAccel_1(int16_t *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetQuantizedAccel_2(VectorInt16 *v, const uint8_t* packet);
+uint8_t MPU6050_dmpGetExternalSensorData(int32_t *data, uint16_t size, const uint8_t* packet);
+uint8_t MPU6050_dmpGetEIS(int32_t *data, const uint8_t* packet);
 
 uint8_t MPU6050_dmpGetEuler(float *data, Quaternion *q);
 uint8_t MPU6050_dmpGetYawPitchRoll(float *data, Quaternion *q, VectorFloat *gravity);
 
 // Get Floating Point data from FIFO
-uint8_t MPU6050_dmpGetAccelFloat(float *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuaternionFloat(float *data, const uint8_t* packet=0);
+uint8_t MPU6050_dmpGetAccelFloat(float *data, const uint8_t* packet);
+uint8_t MPU6050_dmpGetQuaternionFloat(float *data, const uint8_t* packet);
 
 uint8_t MPU6050_dmpProcessFIFOPacket(const unsigned char *dmpData);
-uint8_t MPU6050_dmpReadAndProcessFIFOPacket(uint8_t numPackets, uint8_t *processed=NULL);
-
-uint8_t MPU6050_dmpSetFIFOProcessedCallback(void (*func) (void));
+uint8_t MPU6050_dmpReadAndProcessFIFOPacket(uint8_t numPackets, uint8_t *processed);
 
 uint8_t MPU6050_dmpInitFIFOParam();
 uint8_t MPU6050_dmpCloseFIFO();
@@ -880,110 +930,9 @@ uint8_t MPU6050_dmpSetGyroDataSource(uint8_t source);
 uint8_t MPU6050_dmpDecodeQuantizedAccel();
 uint32_t dmpGetGyroSumOfSquare();
 uint32_t dmpGetAccelSumOfSquare();
-void dmpOverrideQuaternion(long *q);
-uint16_t dmpGetFIFOPacketSize();
-#endif
-
-// special methods for MotionApps 4.1 implementation
-#ifdef MPU6050_INCLUDE_DMP_MOTIONAPPS41
-uint8_t *dmpPacketBuffer;
-uint16_t dmpPacketSize;
-
-uint8_t MPU6050_dmpGetInitialize();
-bool dmpPacketAvailable();
-
-uint8_t MPU6050_dmpGetSetFIFORate(uint8_t fifoRate);
-uint8_t MPU6050_dmpGetFIFORate();
-uint8_t MPU6050_dmpGetSampleStepSizeMS();
-uint8_t MPU6050_dmpGetSampleFrequency();
-int32_t dmpDecodeTemperature(int8_t tempReg);
-
-// Register callbacks after a packet of FIFO data is processed
-//uint8_t MPU6050_dmpGetRegisterFIFORateProcess(inv_obj_func func, int16_t priority);
-//uint8_t MPU6050_dmpGetUnregisterFIFORateProcess(inv_obj_func func);
-uint8_t MPU6050_dmpGetRunFIFORateProcesses();
-
-// Setup FIFO for various output
-uint8_t MPU6050_dmpGetSendQuaternion(uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendGyro(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendAccel(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendLinearAccel(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendLinearAccelInWorld(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendControlData(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendSensorData(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendExternalSensorData(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendGravity(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendPacketNumber(uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendQuantizedAccel(uint_fast16_t elements, uint_fast16_t accuracy);
-uint8_t MPU6050_dmpGetSendEIS(uint_fast16_t elements, uint_fast16_t accuracy);
-
-// Get Fixed Point data from FIFO
-uint8_t MPU6050_dmpGetAccel(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetAccel(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetAccel(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuaternion(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuaternion(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuaternion(Quaternion *q, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGet6AxisQuaternion(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGet6AxisQuaternion(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGet6AxisQuaternion(Quaternion *q, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetRelativeQuaternion(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetRelativeQuaternion(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetRelativeQuaternion(Quaternion *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyro(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyro(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyro(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetMag(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpSetLinearAccelFilterCoefficient(float coef);
-uint8_t MPU6050_dmpGetLinearAccel(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccel(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccel(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccel(VectorInt16 *v, VectorInt16 *vRaw, VectorFloat *gravity);
-uint8_t MPU6050_dmpGetLinearAccelInWorld(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccelInWorld(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccelInWorld(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetLinearAccelInWorld(VectorInt16 *v, VectorInt16 *vReal, Quaternion *q);
-uint8_t MPU6050_dmpGetGyroAndAccelSensor(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroAndAccelSensor(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroAndAccelSensor(VectorInt16 *g, VectorInt16 *a, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroSensor(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroSensor(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGyroSensor(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetControlData(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetTemperature(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGravity(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGravity(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGravity(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetGravity(VectorFloat *v, Quaternion *q);
-uint8_t MPU6050_dmpGetUnquantizedAccel(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetUnquantizedAccel(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetUnquantizedAccel(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuantizedAccel(int32_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuantizedAccel(int16_t *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuantizedAccel(VectorInt16 *v, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetExternalSensorData(int32_t *data, uint16_t size, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetEIS(int32_t *data, const uint8_t* packet=0);
-
-uint8_t MPU6050_dmpGetEuler(float *data, Quaternion *q);
-uint8_t MPU6050_dmpGetYawPitchRoll(float *data, Quaternion *q, VectorFloat *gravity);
-
-// Get Floating Point data from FIFO
-uint8_t MPU6050_dmpGetAccelFloat(float *data, const uint8_t* packet=0);
-uint8_t MPU6050_dmpGetQuaternionFloat(float *data, const uint8_t* packet=0);
-
-uint8_t MPU6050_dmpProcessFIFOPacket(const unsigned char *dmpData);
-uint8_t MPU6050_dmpReadAndProcessFIFOPacket(uint8_t numPackets, uint8_t *processed=NULL);
-
-uint8_t MPU6050_dmpSetFIFOProcessedCallback(void (*func) (void));
-
-uint8_t MPU6050_dmpInitFIFOParam();
-uint8_t MPU6050_dmpCloseFIFO();
-uint8_t MPU6050_dmpSetGyroDataSource(uint8_t source);
-uint8_t MPU6050_dmpDecodeQuantizedAccel();
-uint32_t MPU6050_dmpGetGyroSumOfSquare();
-uint32_t MPU6050_dmpGetAccelSumOfSquare();
 void MPU6050_dmpOverrideQuaternion(long *q);
 uint16_t MPU6050_dmpGetFIFOPacketSize();
-#endif
 
+
+uint8_t MPU6050_dmpGetCurrentFIFOPacket(uint8_t *data);
 #endif /* _MPU6050_H_ */
